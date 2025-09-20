@@ -1,3 +1,5 @@
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
 using Poc.Hub.Filters;
 using Poc.Hub.Hub;
 using Poc.Hub.Mapping;
@@ -25,6 +27,16 @@ builder.Services.AddSignalR().AddStackExchangeRedis(connectionMultiplexer, optio
 {
     options.Configuration.ChannelPrefix = "ConsoleSignalRApp";
 });
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddFixedWindowLimiter("FixedWindowLimiter", opt =>
+    {
+        opt.PermitLimit = 400;
+        opt.Window = TimeSpan.FromSeconds(30);
+        opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        opt.QueueLimit = 20;
+    });
+});
 
 builder.Services.AddAuthorization();
 var app = builder.Build();
@@ -40,7 +52,7 @@ app.UseHttpsRedirection();
 
 app.UseAuthorization();
 
-app.MapHub<LogHub>("/Hub/LogHub");
+app.MapHub<LogHub>("/Hub/LogHub").RequireRateLimiting("FixedWindowLimiter");
 app.MapControllers();
 
 app.Run();
