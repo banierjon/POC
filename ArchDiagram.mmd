@@ -1,0 +1,33 @@
+graph TD
+    subgraph Device-to-Hub Flow
+        subgraph Device
+            A[Device] --> B(Registration)
+            A --> C(Send Log)
+            A-- Database Tx --> G[Outbox Table: Log Event]
+            SA --> A
+            G -- Polling --> J[Message Relayer]
+            J --> C
+        end
+
+        subgraph Proxy
+            B --> N[NGINX - Reverse Proxy]
+            C --> N
+            N --> SA(receive message)
+        end
+
+        subgraph Application Backend
+            N --> D[API Endpoint: /Api/Registration]
+            N --> E[API Endpoint: /HubLohg]
+            D -- Database Tx -->  K[Message Broker]
+            D --> KS[Database: Registration]
+            E -- Database Tx --> H[Database: Log Data]
+            N --> L[Hub: SignalR]
+            L --> N
+            N --> E[API Endpoint: /Message-to-Device]
+        end
+
+        subgraph Application Cloud
+            P[Cloud-Interface] -- Send Message--> N
+            N--> E[API Endpoint: /Message-to-Device]
+        end
+    end
